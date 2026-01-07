@@ -1,29 +1,76 @@
-# SSReader Development Guidelines
+# CLAUDE.md
 
-Auto-generated from all feature plans. Last updated: 2026-01-07
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Active Technologies
+## Build & Test Commands
 
-- Kotlin (JVM 11) (001-light-meter)
+```bash
+# Build debug APK
+./gradlew assembleDebug
 
-## Project Structure
+# Run all unit tests
+./gradlew testDebugUnitTest
 
-```text
-src/
-tests/
+# Run specific test class
+./gradlew testDebugUnitTest --tests "*.ExposureCalculatorTest"
+
+# Run instrumented tests (requires emulator/device)
+./gradlew connectedDebugAndroidTest
+
+# Clean build
+./gradlew clean assembleDebug
 ```
 
-## Commands
+## Architecture Overview
 
-# Add commands for Kotlin (JVM 11)
+SSReader is an Android app built with Jetpack Compose and CameraX. Current feature: **Light Meter** - a film camera exposure meter.
 
-## Code Style
+### Layer Structure
 
-Kotlin (JVM 11): Follow standard conventions
+```
+app/src/main/java/io/github/sangpire/ssreader/
+├── domain/              # Business logic (pure Kotlin, no Android deps)
+│   ├── model/           # Data classes (ExposureSettings, ExposureValue, etc.)
+│   └── ExposureCalculator.kt  # EV calculation logic
+├── camera/              # CameraX integration
+│   └── LightMeterAnalyzer.kt  # ImageAnalysis.Analyzer for luminance
+├── ui/
+│   ├── lightmeter/      # Light meter feature
+│   │   ├── LightMeterScreen.kt      # Main screen Composable
+│   │   ├── LightMeterViewModel.kt   # UI state management
+│   │   └── components/              # Reusable UI components
+│   └── theme/           # Material 3 theming
+└── MainActivity.kt      # Entry point
+```
 
-## Recent Changes
+### Key Patterns
 
-- 001-light-meter: Added Kotlin (JVM 11)
+- **MVVM**: ViewModel manages `StateFlow<LightMeterState>` consumed by Compose
+- **CameraX ImageAnalysis**: Analyzer calculates Y-plane average luminance → EV → optimal exposure
+- **Exposure Lock System**: Users can lock ISO/aperture/shutter, unlocked values auto-adjust
 
-<!-- MANUAL ADDITIONS START -->
-<!-- MANUAL ADDITIONS END -->
+## Feature Specifications (Speckit)
+
+This project uses a specification-driven workflow. Feature specs live in `specs/<feature-id>/`:
+
+- `spec.md` - Feature requirements
+- `plan.md` - Technical design
+- `tasks.md` - Implementation checklist
+- `data-model.md` - Entity definitions
+- `research.md` - Technical decisions
+
+Project constitution: `.specify/memory/constitution.md`
+
+## Code Standards (from Constitution)
+
+- Kotlin official conventions
+- KDoc for public APIs
+- 80%+ test coverage on business logic
+- Material Design 3
+- All UI strings in `strings.xml`
+- contentDescription for accessibility
+- Min SDK 26, Target SDK 36, JVM 11
+
+## Dependencies
+
+Key libraries: CameraX 1.4.0, Compose BOM 2024.09.00, Kotlin 2.0.21
