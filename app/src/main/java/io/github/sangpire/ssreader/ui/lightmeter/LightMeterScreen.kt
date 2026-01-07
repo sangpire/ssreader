@@ -70,24 +70,41 @@ fun LightMeterScreen(
         )
     }
 
+    // PreviewView에서 Bitmap 캡처를 위한 콜백 저장
+    var captureCallback by remember { mutableStateOf<(() -> Bitmap?)?>(null) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // 카메라 프리뷰: Loading 또는 Ready 상태에서 렌더링 (초기화 트리거)
+        if (state !is LightMeterState.Error) {
+            val readyState = state as? LightMeterState.Ready
+            CameraPreview(
+                modifier = Modifier.fillMaxSize(),
+                isFrozen = readyState?.isFrozen ?: false,
+                frozenBitmap = readyState?.frozenBitmap,
+                analyzer = analyzer,
+                onCameraReady = { viewModel.onCameraReady() },
+                onCameraError = { message ->
+                    viewModel.onError(ErrorType.CAMERA_UNAVAILABLE, message)
+                },
+                onCaptureCallbackReady = { callback -> captureCallback = callback }
+            )
+        }
+
         when (val currentState = state) {
             is LightMeterState.Loading -> {
+                // 스피너 오버레이
                 LoadingContent(message = currentState.message)
             }
 
             is LightMeterState.Ready -> {
-                ReadyContent(
+                // 노출 값 표시 및 컨트롤 UI
+                ReadyContentOverlay(
                     state = currentState,
-                    analyzer = analyzer,
-                    onCameraReady = { viewModel.onCameraReady() },
-                    onCameraError = { message ->
-                        viewModel.onError(ErrorType.CAMERA_UNAVAILABLE, message)
-                    },
+                    captureCallback = captureCallback,
                     onToggleLock = { type -> viewModel.toggleLock(type) },
                     onChangeValue = { type, direction -> viewModel.changeExposureValue(type, direction) },
                     onShutterClick = { bitmap -> viewModel.onShutterClick(bitmap) }
@@ -127,31 +144,15 @@ private fun LoadingContent(
 }
 
 @Composable
-private fun ReadyContent(
+private fun ReadyContentOverlay(
     state: LightMeterState.Ready,
-    analyzer: LightMeterAnalyzer,
-    onCameraReady: () -> Unit,
-    onCameraError: (String) -> Unit,
+    captureCallback: (() -> Bitmap?)?,
     onToggleLock: (ExposureType) -> Unit,
     onChangeValue: (ExposureType, Int) -> Unit,
     onShutterClick: (Bitmap?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // PreviewView에서 Bitmap 캡처를 위한 콜백 저장
-    var captureCallback by remember { mutableStateOf<(() -> Bitmap?)?>(null) }
-
     Box(modifier = modifier.fillMaxSize()) {
-        // 카메라 프리뷰
-        CameraPreview(
-            modifier = Modifier.fillMaxSize(),
-            isFrozen = state.isFrozen,
-            frozenBitmap = state.frozenBitmap,
-            analyzer = analyzer,
-            onCameraReady = onCameraReady,
-            onCameraError = onCameraError,
-            onCaptureCallbackReady = { callback -> captureCallback = callback }
-        )
-
         // 노출 값 표시 (오른쪽 아래)
         ExposureValueDisplay(
             exposureSettings = state.exposureSettings,
