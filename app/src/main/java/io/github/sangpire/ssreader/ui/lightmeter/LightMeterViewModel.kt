@@ -134,6 +134,8 @@ class LightMeterViewModel(
     /**
      * 노출 값 변경
      *
+     * 값을 변경하면 측정된 EV를 기준으로 다른 값들도 재계산됩니다.
+     *
      * @param type 변경할 노출 값 타입
      * @param direction 방향 (1: 증가, -1: 감소)
      */
@@ -144,7 +146,42 @@ class LightMeterViewModel(
                 val newValue = calculator.getNextStopValue(currentValue, direction)
 
                 if (newValue != null) {
-                    state.copy(exposureSettings = state.exposureSettings.updateValue(type, newValue))
+                    // 변경할 값 적용
+                    val updatedSettings = state.exposureSettings.updateValue(type, newValue)
+
+                    // 변경한 값을 임시로 locked 처리하여 재계산 시 유지
+                    val settingsForRecalc = when (type) {
+                        ExposureType.ISO -> updatedSettings.copy(
+                            iso = updatedSettings.iso.copy(isLocked = true)
+                        )
+                        ExposureType.APERTURE -> updatedSettings.copy(
+                            aperture = updatedSettings.aperture.copy(isLocked = true)
+                        )
+                        ExposureType.SHUTTER_SPEED -> updatedSettings.copy(
+                            shutterSpeed = updatedSettings.shutterSpeed.copy(isLocked = true)
+                        )
+                    }
+
+                    // 측정된 EV 기준으로 다른 값들 재계산
+                    val recalculated = calculator.calculateOptimalExposure(
+                        settingsForRecalc,
+                        updatedSettings.measuredEV
+                    )
+
+                    // 원래 lock 상태로 복원
+                    val finalSettings = when (type) {
+                        ExposureType.ISO -> recalculated.copy(
+                            iso = recalculated.iso.copy(isLocked = newValue.isLocked)
+                        )
+                        ExposureType.APERTURE -> recalculated.copy(
+                            aperture = recalculated.aperture.copy(isLocked = newValue.isLocked)
+                        )
+                        ExposureType.SHUTTER_SPEED -> recalculated.copy(
+                            shutterSpeed = recalculated.shutterSpeed.copy(isLocked = newValue.isLocked)
+                        )
+                    }
+
+                    state.copy(exposureSettings = finalSettings)
                 } else {
                     state
                 }
