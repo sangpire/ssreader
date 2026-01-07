@@ -1,50 +1,157 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+=============================================================================
+동기화 영향 보고서 (Sync Impact Report)
+=============================================================================
+버전 변경: 0.0.0 → 1.0.0 (최초 제정)
+변경된 원칙: 해당 없음 (최초 제정)
+추가된 섹션:
+  - 핵심 원칙 5개 (코드 품질, 테스트 표준, 사용자 경험, 성능 요구사항, 단순성)
+  - 기술 표준 섹션
+  - 개발 워크플로우 섹션
+  - 거버넌스 섹션
+삭제된 섹션: 해당 없음
+템플릿 업데이트 필요:
+  - .specify/templates/plan-template.md ✅ 호환 확인 (Constitution Check 섹션 존재)
+  - .specify/templates/spec-template.md ✅ 호환 확인 (요구사항/성공 기준 섹션 존재)
+  - .specify/templates/tasks-template.md ✅ 호환 확인 (테스트 우선 워크플로우 포함)
+후속 조치 TODO: 없음
+=============================================================================
+-->
 
-## Core Principles
+# SSReader 프로젝트 헌법
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+## 핵심 원칙
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### I. 코드 품질 우선
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+모든 코드는 가독성, 유지보수성, 확장성을 최우선으로 작성되어야 한다.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**필수 준수 사항:**
+- 모든 코드는 Kotlin 공식 코딩 컨벤션을 따라야 한다 (MUST)
+- 함수는 단일 책임 원칙(SRP)을 준수해야 한다 (MUST)
+- 클래스 및 함수명은 그 역할을 명확히 나타내야 한다 (MUST)
+- 매직 넘버와 하드코딩된 문자열은 상수로 추출해야 한다 (MUST)
+- 코드 중복은 3회 이상 발생 시 반드시 추상화해야 한다 (MUST)
+- 모든 public API는 KDoc 문서화가 필요하다 (SHOULD)
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+**근거:** 읽기 쉬운 코드는 버그를 줄이고, 팀 협업을 원활하게 하며,
+장기적인 유지보수 비용을 절감한다.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### II. 테스트 표준 준수
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+테스트는 코드 품질 보증의 핵심이며, 모든 기능은 검증 가능해야 한다.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**필수 준수 사항:**
+- 신규 비즈니스 로직은 반드시 단위 테스트를 포함해야 한다 (MUST)
+- 테스트 커버리지는 핵심 비즈니스 로직에서 80% 이상을 유지해야 한다 (SHOULD)
+- UI 컴포넌트는 스크린샷 테스트 또는 UI 테스트로 검증해야 한다 (SHOULD)
+- 테스트는 독립적이고 반복 실행 가능해야 한다 (MUST)
+- 테스트명은 테스트 대상과 기대 결과를 명확히 표현해야 한다 (MUST)
+- CI/CD 파이프라인에서 모든 테스트가 통과해야 머지가 허용된다 (MUST)
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**근거:** 체계적인 테스트는 회귀 버그를 방지하고, 리팩토링을 안전하게 수행할 수
+있게 하며, 개발자에게 변경에 대한 확신을 제공한다.
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+### III. 사용자 경험 일관성
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+사용자 경험은 일관되고 직관적이어야 하며, 플랫폼 가이드라인을 준수해야 한다.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**필수 준수 사항:**
+- Material Design 3 가이드라인을 따라야 한다 (MUST)
+- 다크 모드와 라이트 모드를 모두 지원해야 한다 (MUST)
+- 모든 인터랙티브 요소는 최소 48dp 터치 영역을 확보해야 한다 (MUST)
+- 화면 전환 및 상태 변화는 적절한 애니메이션으로 피드백해야 한다 (SHOULD)
+- 접근성(a11y)을 고려하여 contentDescription을 제공해야 한다 (MUST)
+- 오류 상태는 사용자에게 명확한 안내와 해결 방법을 제시해야 한다 (MUST)
+- UI 텍스트는 다국어 지원을 위해 strings.xml로 관리해야 한다 (MUST)
+
+**근거:** 일관된 사용자 경험은 학습 곡선을 줄이고, 사용자 만족도를 높이며,
+앱의 전문성과 신뢰성을 향상시킨다.
+
+### IV. 성능 요구사항
+
+앱은 사용자에게 빠르고 반응적인 경험을 제공해야 한다.
+
+**필수 준수 사항:**
+- 앱 콜드 스타트 시간은 2초 이내여야 한다 (MUST)
+- UI 스레드를 블로킹하는 작업은 금지된다 (MUST)
+- 리스트 스크롤 시 60fps를 유지해야 한다 (MUST)
+- 메모리 누수가 발생하지 않아야 한다 (MUST)
+- 네트워크 요청은 타임아웃과 재시도 로직을 포함해야 한다 (MUST)
+- 큰 이미지는 적절한 샘플링과 캐싱을 적용해야 한다 (SHOULD)
+- 배터리 소모를 최소화하도록 백그라운드 작업을 최적화해야 한다 (SHOULD)
+
+**근거:** 성능 저하는 사용자 이탈의 주요 원인이며, ANR(Application Not
+Responding)은 앱 평점에 직접적인 악영향을 미친다.
+
+### V. 단순성 지향
+
+복잡성은 명확한 근거가 있을 때만 허용되며, 항상 가장 단순한 해결책을 선호한다.
+
+**필수 준수 사항:**
+- YAGNI(You Aren't Gonna Need It) 원칙을 따른다 (MUST)
+- 추상화는 실제 필요가 증명된 후에만 도입한다 (MUST)
+- 외부 라이브러리 도입은 명확한 이점이 있을 때만 허용된다 (SHOULD)
+- 아키텍처 패턴은 프로젝트 규모에 맞게 적용한다 (SHOULD)
+- 과도한 엔지니어링보다 작동하는 코드를 우선한다 (MUST)
+
+**근거:** 단순한 코드는 이해하기 쉽고, 버그가 적으며, 변경이 용이하다.
+복잡성은 기술 부채의 주요 원인이다.
+
+## 기술 표준
+
+### 기술 스택
+
+- **언어**: Kotlin (최신 안정 버전)
+- **최소 SDK**: Android API 24 (Android 7.0)
+- **타겟 SDK**: 최신 안정 API 레벨
+- **아키텍처**: MVVM + Clean Architecture
+- **의존성 주입**: Hilt
+- **비동기 처리**: Kotlin Coroutines + Flow
+- **UI**: Jetpack Compose (신규 화면) / XML (기존 화면 유지보수)
+
+### 코드 품질 도구
+
+- **정적 분석**: ktlint, detekt
+- **테스트 프레임워크**: JUnit5, MockK, Turbine
+- **UI 테스트**: Espresso, Compose Testing
+
+## 개발 워크플로우
+
+### 코드 리뷰 요구사항
+
+- 모든 변경사항은 Pull Request를 통해 병합되어야 한다 (MUST)
+- PR은 최소 1명의 리뷰어 승인이 필요하다 (MUST)
+- CI 검사(린트, 테스트, 빌드)가 모두 통과해야 한다 (MUST)
+- PR 설명에는 변경 목적과 테스트 방법이 포함되어야 한다 (SHOULD)
+
+### 품질 게이트
+
+- 빌드 경고는 0개를 유지해야 한다 (SHOULD)
+- 새로운 deprecated API 사용은 금지된다 (MUST)
+- ProGuard/R8 규칙은 변경 시 검증이 필요하다 (MUST)
+
+## 거버넌스
+
+### 헌법의 권위
+
+이 헌법은 프로젝트의 모든 개발 관행보다 우선한다. 모든 PR과 코드 리뷰는
+이 헌법의 준수 여부를 확인해야 한다.
+
+### 개정 절차
+
+1. 개정 제안은 문서화되어야 한다
+2. 팀 전체의 검토와 논의가 필요하다
+3. 기존 코드에 대한 마이그레이션 계획이 포함되어야 한다
+4. 버전은 시맨틱 버저닝을 따른다:
+   - MAJOR: 원칙 삭제 또는 근본적 변경
+   - MINOR: 새 원칙 추가 또는 확장
+   - PATCH: 문구 수정, 명확화
+
+### 준수 검토
+
+- 분기별로 헌법 준수 상태를 검토한다
+- 위반 사항은 기술 부채로 추적한다
+- 반복적 위반은 헌법 개정 논의의 근거가 된다
+
+**Version**: 1.0.0 | **Ratified**: 2026-01-07 | **Last Amended**: 2026-01-07
