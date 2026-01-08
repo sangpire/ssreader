@@ -1,3 +1,42 @@
 <resources>
     <string name="app_name">SS Reader</string>
+
+    <!-- Permission -->
+    <string name="permission_camera_required">카메라 권한이 필요합니다</string>
+    <string name="permission_camera_denied">카메라 권한이 거부되었습니다. 설정에서 권한을 허용해주세요.</string>
+    <string name="btn_grant_permission">권한 허용</string>
+    <string name="btn_open_settings">설정 열기</string>
+
+    <!-- Exposure Labels -->
+    <string name="label_iso">ISO</string>
+    <string name="label_aperture">조리개</string>
+    <string name="label_shutter_speed">셔터</string>
+    <string name="label_ev">EV</string>
+    <string name="label_exposure_compensation">노출 보정</string>
+
+    <!-- Exposure Values Format -->
+    <string name="format_aperture">f/%s</string>
+    <string name="format_ev">EV %+.1f</string>
+    <string name="format_compensation">%+.1f</string>
+
+    <!-- Status Messages -->
+    <string name="status_loading">카메라 초기화 중…</string>
+    <string name="status_ready">측광 준비 완료</string>
+    <string name="status_frozen">화면 고정됨</string>
+    <string name="warning_too_bright">너무 밝음 - 측광 범위 초과</string>
+    <string name="warning_too_dark">너무 어두움 - 측광 범위 초과</string>
+
+    <!-- Error Messages -->
+    <string name="error_camera_unavailable">카메라를 사용할 수 없습니다</string>
+    <string name="error_analysis_failed">이미지 분석에 실패했습니다</string>
+
+    <!-- Accessibility -->
+    <string name="cd_camera_preview">카메라 미리보기</string>
+    <string name="cd_shutter_button">측광 고정 버튼</string>
+    <string name="cd_lock_iso">ISO 고정</string>
+    <string name="cd_lock_aperture">조리개 고정</string>
+    <string name="cd_lock_shutter">셔터스피드 고정</string>
+    <string name="cd_swipe_adjust">스와이프하여 값 조정</string>
+    <string name="cd_freeze_camera">화면 고정</string>
+    <string name="cd_resume_camera">화면 재개</string>
 </resources>
