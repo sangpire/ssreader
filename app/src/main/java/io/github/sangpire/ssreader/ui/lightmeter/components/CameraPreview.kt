@@ -2,9 +2,13 @@ package io.github.sangpire.ssreader.ui.lightmeter.components
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -28,6 +32,9 @@ import io.github.sangpire.ssreader.R
 import io.github.sangpire.ssreader.camera.LightMeterAnalyzer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * 카메라 프리뷰 Composable
@@ -39,6 +46,7 @@ import java.util.concurrent.Executors
  * @param onCameraReady 카메라 준비 완료 콜백
  * @param onCameraError 카메라 오류 콜백
  * @param onCaptureCallbackReady PreviewView Bitmap 캡처 콜백이 준비되면 호출
+ * @param onImageCaptureReady 고해상도 이미지 캡처 콜백이 준비되면 호출
  */
 @Composable
 fun CameraPreview(
@@ -48,7 +56,8 @@ fun CameraPreview(
     analyzer: LightMeterAnalyzer,
     onCameraReady: () -> Unit = {},
     onCameraError: (String) -> Unit = {},
-    onCaptureCallbackReady: ((() -> Bitmap?) -> Unit)? = null
+    onCaptureCallbackReady: ((() -> Bitmap?) -> Unit)? = null,
+    onImageCaptureReady: ((suspend () -> Bitmap?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -99,7 +108,8 @@ fun CameraPreview(
                     cameraExecutor = cameraExecutor,
                     lifecycleOwner = lifecycleOwner,
                     onCameraReady = onCameraReady,
-                    onCameraError = onCameraError
+                    onCameraError = onCameraError,
+                    onImageCaptureReady = onImageCaptureReady
                 )
             }
         )
@@ -113,7 +123,8 @@ private fun setupCamera(
     cameraExecutor: ExecutorService,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner,
     onCameraReady: () -> Unit,
-    onCameraError: (String) -> Unit
+    onCameraError: (String) -> Unit,
+    onImageCaptureReady: ((suspend () -> Bitmap?) -> Unit)?
 ) {
     val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
@@ -136,6 +147,16 @@ private fun setupCamera(
                     it.setAnalyzer(cameraExecutor, analyzer)
                 }
 
+            // Image capture use case (고해상도 촬영)
+            val imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                .build()
+
+            // 고해상도 이미지 캡처 콜백 제공
+            onImageCaptureReady?.invoke {
+                captureHighResolutionImage(imageCapture, cameraExecutor)
+            }
+
             // 후면 카메라 선택
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
@@ -145,7 +166,8 @@ private fun setupCamera(
                 lifecycleOwner,
                 cameraSelector,
                 preview,
-                imageAnalysis
+                imageAnalysis,
+                imageCapture
             )
 
             onCameraReady()
@@ -153,4 +175,54 @@ private fun setupCamera(
             onCameraError(e.message ?: "Camera initialization failed")
         }
     }, ContextCompat.getMainExecutor(context))
+}
+
+/**
+ * 고해상도 이미지를 메모리로 캡처
+ *
+ * @param imageCapture ImageCapture use case
+ * @param executor Executor
+ * @return 캡처된 Bitmap, 실패 시 null
+ */
+private suspend fun captureHighResolutionImage(
+    imageCapture: ImageCapture,
+    executor: ExecutorService
+): Bitmap? = suspendCoroutine { continuation ->
+    imageCapture.takePicture(
+        executor,
+        object : ImageCapture.OnImageCapturedCallback() {
+            override fun onCaptureSuccess(imageProxy: androidx.camera.core.ImageProxy) {
+                try {
+                    // ImageProxy를 Bitmap으로 변환
+                    val buffer = imageProxy.planes[0].buffer
+                    val bytes = ByteArray(buffer.remaining())
+                    buffer.get(bytes)
+
+                    var bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+                    // 회전 처리 (필요시)
+                    if (imageProxy.imageInfo.rotationDegrees != 0) {
+                        val matrix = Matrix()
+                        matrix.postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
+                        bitmap = Bitmap.createBitmap(
+                            bitmap, 0, 0,
+                            bitmap.width, bitmap.height,
+                            matrix, true
+                        )
+                    }
+
+                    imageProxy.close()
+                    continuation.resume(bitmap)
+                } catch (e: Exception) {
+                    imageProxy.close()
+                    continuation.resume(null)
+                }
+            }
+
+            override fun onError(exception: ImageCaptureException) {
+                exception.printStackTrace()
+                continuation.resume(null)
+            }
+        }
+    )
 }
