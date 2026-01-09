@@ -1,18 +1,25 @@
 package io.github.sangpire.ssreader.util
 
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
+import android.view.PixelCopy
 import android.view.View
+import android.view.Window
 import androidx.core.graphics.applyCanvas
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 /**
  * 스크린샷 캡처 및 저장 유틸리티
@@ -31,6 +38,41 @@ object ScreenshotUtils {
             view.draw(this)
         }
         return bitmap
+    }
+
+    /**
+     * Window 전체를 Bitmap으로 캡처 (SurfaceView 포함)
+     * Android 8.0 이상에서 PixelCopy API 사용
+     *
+     * @param window Activity Window
+     * @return 캡처된 Bitmap, 실패 시 null
+     */
+    suspend fun captureWindow(window: Window): Bitmap? = suspendCoroutine { continuation ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val view = window.decorView.rootView
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+
+            try {
+                PixelCopy.request(
+                    window,
+                    bitmap,
+                    { copyResult ->
+                        if (copyResult == PixelCopy.SUCCESS) {
+                            continuation.resume(bitmap)
+                        } else {
+                            continuation.resume(null)
+                        }
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                continuation.resume(null)
+            }
+        } else {
+            // Android 8.0 미만에서는 일반 View 캡처 사용
+            continuation.resume(captureView(window.decorView.rootView))
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.github.sangpire.ssreader.ui.lightmeter
 
+import android.app.Activity
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -22,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.sangpire.ssreader.util.ScreenshotUtils
@@ -163,28 +163,32 @@ private fun ReadyContentOverlay(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val rootView = LocalView.current.rootView
+    val activity = context as? Activity
     var shouldCaptureScreenshot by remember { mutableStateOf(false) }
 
     // 버튼이 숨겨졌을 때 스크린샷 캡처
     LaunchedEffect(state.isShutterButtonVisible) {
-        if (!state.isShutterButtonVisible && shouldCaptureScreenshot) {
+        if (!state.isShutterButtonVisible && shouldCaptureScreenshot && activity != null) {
             // UI 업데이트 대기 (버튼이 완전히 사라지도록)
             delay(100)
 
-            // 화면 캡처
-            val bitmap = ScreenshotUtils.captureView(rootView)
+            // 화면 캡처 (PixelCopy 사용 - SurfaceView 포함)
+            val bitmap = ScreenshotUtils.captureWindow(activity.window)
 
-            // 저장
-            val success = ScreenshotUtils.saveBitmapToGallery(context, bitmap)
+            if (bitmap != null) {
+                // 저장
+                val success = ScreenshotUtils.saveBitmapToGallery(context, bitmap)
 
-            // 사용자에게 알림
-            val message = if (success) {
-                "스크린샷이 갤러리에 저장되었습니다"
+                // 사용자에게 알림
+                val message = if (success) {
+                    "스크린샷이 갤러리에 저장되었습니다"
+                } else {
+                    "스크린샷 저장에 실패했습니다"
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             } else {
-                "스크린샷 저장에 실패했습니다"
+                Toast.makeText(context, "스크린샷 캡처에 실패했습니다", Toast.LENGTH_SHORT).show()
             }
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
             // 버튼 다시 표시
             shouldCaptureScreenshot = false
