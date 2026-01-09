@@ -18,7 +18,8 @@ sealed class LightMeterState {
     data class Ready(
         val exposureSettings: ExposureSettings,
         val isFrozen: Boolean = false,
-        val frozenBitmap: Bitmap? = null
+        val frozenBitmap: Bitmap? = null,
+        val isShutterButtonVisible: Boolean = true
     ) : LightMeterState()
 
     /**

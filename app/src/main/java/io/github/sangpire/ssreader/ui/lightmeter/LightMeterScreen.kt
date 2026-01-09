@@ -1,6 +1,7 @@
 package io.github.sangpire.ssreader.ui.lightmeter
 
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,9 +20,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.sangpire.ssreader.util.ScreenshotUtils
+import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -107,7 +113,9 @@ fun LightMeterScreen(
                     captureCallback = captureCallback,
                     onToggleLock = { type -> viewModel.toggleLock(type) },
                     onChangeValue = { type, direction -> viewModel.changeExposureValue(type, direction) },
-                    onShutterClick = { bitmap -> viewModel.onShutterClick(bitmap) }
+                    onShutterClick = { bitmap -> viewModel.onShutterClick(bitmap) },
+                    onHideShutterButton = { viewModel.hideShutterButton() },
+                    onShowShutterButton = { viewModel.showShutterButton() }
                 )
             }
 
@@ -150,8 +158,40 @@ private fun ReadyContentOverlay(
     onToggleLock: (ExposureType) -> Unit,
     onChangeValue: (ExposureType, Int) -> Unit,
     onShutterClick: (Bitmap?) -> Unit,
+    onHideShutterButton: () -> Unit,
+    onShowShutterButton: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val rootView = LocalView.current.rootView
+    var shouldCaptureScreenshot by remember { mutableStateOf(false) }
+
+    // 버튼이 숨겨졌을 때 스크린샷 캡처
+    LaunchedEffect(state.isShutterButtonVisible) {
+        if (!state.isShutterButtonVisible && shouldCaptureScreenshot) {
+            // UI 업데이트 대기 (버튼이 완전히 사라지도록)
+            delay(100)
+
+            // 화면 캡처
+            val bitmap = ScreenshotUtils.captureView(rootView)
+
+            // 저장
+            val success = ScreenshotUtils.saveBitmapToGallery(context, bitmap)
+
+            // 사용자에게 알림
+            val message = if (success) {
+                "스크린샷이 갤러리에 저장되었습니다"
+            } else {
+                "스크린샷 저장에 실패했습니다"
+            }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+            // 버튼 다시 표시
+            shouldCaptureScreenshot = false
+            onShowShutterButton()
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         // 노출 값 표시 (오른쪽 아래)
         ExposureValueDisplay(
@@ -163,28 +203,30 @@ private fun ReadyContentOverlay(
                 .padding(16.dp)
         )
 
-        // 셔터 버튼 (하단 중앙)
-        ShutterButton(
-            isFrozen = state.isFrozen,
-            onClick = {
-                if (state.isFrozen) {
-                    // 해제: null 전달
-                    onShutterClick(null)
+        // 셔터 버튼 (하단 중앙) - 가시성 제어
+        if (state.isShutterButtonVisible) {
+            ShutterButton(
+                isFrozen = state.isFrozen,
+                onClick = {
+                    if (state.isFrozen) {
+                        // 해제: null 전달
+                        onShutterClick(null)
+                    } else {
+                        // 스크린샷 캡처 시작
+                        shouldCaptureScreenshot = true
+                        onHideShutterButton()
+                    }
+                },
+                contentDescription = if (state.isFrozen) {
+                    stringResource(R.string.cd_resume_camera)
                 } else {
-                    // 고정: 현재 프레임 캡처
-                    val bitmap = captureCallback?.invoke()
-                    onShutterClick(bitmap)
-                }
-            },
-            contentDescription = if (state.isFrozen) {
-                stringResource(R.string.cd_resume_camera)
-            } else {
-                stringResource(R.string.cd_freeze_camera)
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp)
-        )
+                    stringResource(R.string.cd_freeze_camera)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+            )
+        }
 
         // 고정 상태 표시
         if (state.isFrozen) {

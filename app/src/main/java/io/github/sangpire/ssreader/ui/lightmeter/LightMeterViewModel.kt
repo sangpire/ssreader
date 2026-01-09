@@ -1,17 +1,22 @@
 package io.github.sangpire.ssreader.ui.lightmeter
 
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import io.github.sangpire.ssreader.domain.ExposureCalculator
 import io.github.sangpire.ssreader.domain.model.ErrorType
 import io.github.sangpire.ssreader.domain.model.ExposureSettings
 import io.github.sangpire.ssreader.domain.model.ExposureType
 import io.github.sangpire.ssreader.domain.model.LightMeterState
 import io.github.sangpire.ssreader.domain.model.MeteringResult
+import io.github.sangpire.ssreader.util.ScreenshotUtils
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * 노출계 화면 ViewModel
@@ -188,6 +193,54 @@ class LightMeterViewModel(
             } else {
                 state
             }
+        }
+    }
+
+    /**
+     * 스크린샷 저장 시작
+     *
+     * 버튼을 숨기고 스크린샷 캡처를 준비합니다.
+     */
+    fun hideShutterButton() {
+        _state.update { state ->
+            if (state is LightMeterState.Ready) {
+                state.copy(isShutterButtonVisible = false)
+            } else {
+                state
+            }
+        }
+    }
+
+    /**
+     * 스크린샷 저장 완료
+     *
+     * 버튼을 다시 표시합니다.
+     */
+    fun showShutterButton() {
+        _state.update { state ->
+            if (state is LightMeterState.Ready) {
+                state.copy(isShutterButtonVisible = true)
+            } else {
+                state
+            }
+        }
+    }
+
+    /**
+     * 스크린샷을 갤러리에 저장
+     *
+     * @param context Context
+     * @param bitmap 저장할 Bitmap
+     * @param onComplete 저장 완료 콜백 (성공 여부 전달)
+     */
+    fun saveScreenshot(
+        context: Context,
+        bitmap: Bitmap,
+        onComplete: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val success = ScreenshotUtils.saveBitmapToGallery(context, bitmap)
+            onComplete(success)
         }
     }
 }
