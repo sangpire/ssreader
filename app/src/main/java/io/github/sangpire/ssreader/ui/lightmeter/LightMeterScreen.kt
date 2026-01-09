@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.sangpire.ssreader.util.ImageOverlayUtils
 import io.github.sangpire.ssreader.util.ScreenshotUtils
 import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
@@ -79,6 +80,9 @@ fun LightMeterScreen(
     // PreviewView에서 Bitmap 캡처를 위한 콜백 저장
     var captureCallback by remember { mutableStateOf<(() -> Bitmap?)?>(null) }
 
+    // 고해상도 이미지 캡처를 위한 콜백 저장
+    var imageCaptureCallback by remember { mutableStateOf<(suspend () -> Bitmap?)?>(null) }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -96,7 +100,8 @@ fun LightMeterScreen(
                 onCameraError = { message ->
                     viewModel.onError(ErrorType.CAMERA_UNAVAILABLE, message)
                 },
-                onCaptureCallbackReady = { callback -> captureCallback = callback }
+                onCaptureCallbackReady = { callback -> captureCallback = callback },
+                onImageCaptureReady = { callback -> imageCaptureCallback = callback }
             )
         }
 
@@ -111,6 +116,7 @@ fun LightMeterScreen(
                 ReadyContentOverlay(
                     state = currentState,
                     captureCallback = captureCallback,
+                    imageCaptureCallback = imageCaptureCallback,
                     onToggleLock = { type -> viewModel.toggleLock(type) },
                     onChangeValue = { type, direction -> viewModel.changeExposureValue(type, direction) },
                     onShutterClick = { bitmap -> viewModel.onShutterClick(bitmap) },
@@ -155,6 +161,7 @@ private fun LoadingContent(
 private fun ReadyContentOverlay(
     state: LightMeterState.Ready,
     captureCallback: (() -> Bitmap?)?,
+    imageCaptureCallback: (suspend () -> Bitmap?)?,
     onToggleLock: (ExposureType) -> Unit,
     onChangeValue: (ExposureType, Int) -> Unit,
     onShutterClick: (Bitmap?) -> Unit,
@@ -163,35 +170,44 @@ private fun ReadyContentOverlay(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
-    var shouldCaptureScreenshot by remember { mutableStateOf(false) }
+    var shouldCaptureImage by remember { mutableStateOf(false) }
 
-    // 버튼이 숨겨졌을 때 스크린샷 캡처
+    // 버튼이 숨겨졌을 때 고해상도 이미지 캡처
     LaunchedEffect(state.isShutterButtonVisible) {
-        if (!state.isShutterButtonVisible && shouldCaptureScreenshot && activity != null) {
+        if (!state.isShutterButtonVisible && shouldCaptureImage && imageCaptureCallback != null) {
             // UI 업데이트 대기 (버튼이 완전히 사라지도록)
             delay(100)
 
-            // 화면 캡처 (PixelCopy 사용 - SurfaceView 포함)
-            val bitmap = ScreenshotUtils.captureWindow(activity.window)
+            // 고해상도 이미지 촬영
+            val originalBitmap = imageCaptureCallback.invoke()
 
-            if (bitmap != null) {
-                // 저장
-                val success = ScreenshotUtils.saveBitmapToGallery(context, bitmap)
+            if (originalBitmap != null) {
+                // 노출 정보 오버레이
+                val overlayedBitmap = ImageOverlayUtils.overlayExposureInfo(
+                    originalBitmap,
+                    state.exposureSettings
+                )
+
+                // 갤러리에 저장
+                val success = ScreenshotUtils.saveBitmapToGallery(context, overlayedBitmap)
 
                 // 사용자에게 알림
                 val message = if (success) {
-                    "스크린샷이 갤러리에 저장되었습니다"
+                    "고해상도 이미지가 갤러리에 저장되었습니다"
                 } else {
-                    "스크린샷 저장에 실패했습니다"
+                    "이미지 저장에 실패했습니다"
                 }
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+                // Bitmap 메모리 해제
+                overlayedBitmap.recycle()
+                originalBitmap.recycle()
             } else {
-                Toast.makeText(context, "스크린샷 캡처에 실패했습니다", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "이미지 촬영에 실패했습니다", Toast.LENGTH_SHORT).show()
             }
 
             // 버튼 다시 표시
-            shouldCaptureScreenshot = false
+            shouldCaptureImage = false
             onShowShutterButton()
         }
     }
@@ -216,8 +232,8 @@ private fun ReadyContentOverlay(
                         // 해제: null 전달
                         onShutterClick(null)
                     } else {
-                        // 스크린샷 캡처 시작
-                        shouldCaptureScreenshot = true
+                        // 고해상도 이미지 캡처 시작
+                        shouldCaptureImage = true
                         onHideShutterButton()
                     }
                 },
