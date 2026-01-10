@@ -1,6 +1,7 @@
 package io.github.sangpire.ssreader.ui.lightmeter
 
 import android.app.Activity
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -170,6 +172,8 @@ private fun ReadyContentOverlay(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var shouldCaptureImage by remember { mutableStateOf(false) }
 
     // 버튼이 숨겨졌을 때 고해상도 이미지 캡처
@@ -223,7 +227,7 @@ private fun ReadyContentOverlay(
                 .padding(16.dp)
         )
 
-        // 셔터 버튼 (하단 중앙) - 가시성 제어
+        // 셔터 버튼 - 가시성 제어 및 orientation 기반 위치 조정
         if (state.isShutterButtonVisible) {
             ShutterButton(
                 isFrozen = state.isFrozen,
@@ -242,9 +246,17 @@ private fun ReadyContentOverlay(
                 } else {
                     stringResource(R.string.cd_freeze_camera)
                 },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp)
+                modifier = if (isLandscape) {
+                    // Landscape: 하단 오른쪽 (물리적으로 기기 하단)
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 32.dp, bottom = 16.dp)
+                } else {
+                    // Portrait: 하단 중앙 (기존 위치)
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 32.dp)
+                }
             )
         }
 
